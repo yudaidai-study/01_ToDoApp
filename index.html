@@ -121,6 +121,18 @@
     </div>
   </div>
 
+  <!-- Comment modal -->
+  <div id="comment-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="コメント">
+    <div class="modal-card">
+      <p class="modal-title">コメント</p>
+      <textarea id="comment-text" class="edit-textarea" rows="5" maxlength="500" placeholder="コメントを入力..."></textarea>
+      <div class="modal-actions">
+        <button id="comment-cancel">キャンセル</button>
+        <button id="comment-ok" class="btn-primary">保存</button>
+      </div>
+    </div>
+  </div>
+
   <script src="/01_ToDoApp/js/sw-register.js"></script>
   <script type="module" src="/01_ToDoApp/js/app.js"></script>
 </body>

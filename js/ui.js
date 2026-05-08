@@ -91,6 +91,7 @@ function renderItems(todos, showCompletedDate = false) {
     const metaSecondary = showCompletedDate && t.completedAt
       ? `<span class="completed-date">完了: ${formatDate(t.completedAt)}</span>`
       : deadlineHtml(t);
+    const commentDot = t.comment ? '<span class="comment-dot" aria-label="コメントあり"></span>' : '';
     return `
       <li class="todo-item priority-${t.priority} category-${t.category}${stateClass}${dueSoon ? ' due-soon' : ''}${overdue ? ' overdue' : ''}" data-id="${t.id}">
         <button class="check-btn" aria-label="${isDone ? '未完了に戻す' : '完了にする'}">
@@ -100,6 +101,7 @@ function renderItems(todos, showCompletedDate = false) {
         <div class="todo-meta">
           <span class="todo-category">${escHtml(CATEGORY_LABEL[t.category] ?? t.category)}</span>
           ${metaSecondary}
+          ${commentDot}
         </div>
         <div class="delete-overlay">削除</div>
       </li>
@@ -188,6 +190,12 @@ export const ui = {
       } else if (newHtml) {
         todoMeta.insertAdjacentHTML('beforeend', newHtml);
       }
+      const existingDot = todoMeta.querySelector('.comment-dot');
+      if (todo.comment && !existingDot) {
+        todoMeta.insertAdjacentHTML('beforeend', '<span class="comment-dot" aria-label="コメントあり"></span>');
+      } else if (!todo.comment && existingDot) {
+        existingDot.remove();
+      }
     }
 
     const organizeBtn = document.getElementById('btn-organize');
@@ -195,6 +203,22 @@ export const ui = {
       organizeBtn.textContent = pendingCount > 0 ? `整理 (${pendingCount})` : '整理';
       organizeBtn.disabled    = pendingCount === 0;
     }
+  },
+
+  openCommentModal(todo, onSave) {
+    const modal    = document.getElementById('comment-modal');
+    const textarea = document.getElementById('comment-text');
+    textarea.value = todo.comment || '';
+    modal.classList.remove('hidden');
+    textarea.focus();
+
+    const close = () => modal.classList.add('hidden');
+    document.getElementById('comment-cancel').onclick = close;
+    modal.onclick = e => { if (e.target === modal) close(); };
+    document.getElementById('comment-ok').onclick = () => {
+      onSave(textarea.value.trim());
+      close();
+    };
   },
 
   setFilter(filter) {
@@ -222,7 +246,7 @@ export const ui = {
     document.getElementById('new-todo').value = '';
   },
 
-  bindEvents({ onAdd, onToggle, onRemove, onOrganize, onEdit, onFilterChange, onClearHistory, onPriorityFilterChange }) {
+  bindEvents({ onAdd, onToggle, onRemove, onOrganize, onEdit, onFilterChange, onClearHistory, onPriorityFilterChange, onLongPress }) {
     document.querySelector('.filter-tabs').addEventListener('click', e => {
       const btn = e.target.closest('.tab');
       if (btn) onFilterChange(btn.dataset.filter);
@@ -279,6 +303,8 @@ export const ui = {
 
     setupSwipe('todo-list',     onRemove);
     setupSwipe('shopping-list', onRemove);
+    setupLongPress('todo-list',     onLongPress);
+    setupLongPress('shopping-list', onLongPress);
   },
 
   openModal(
@@ -461,4 +487,48 @@ function setupSwipe(listId, onRemove) {
     activeItem = null;
     gesture = null;
   });
+}
+
+function setupLongPress(listId, onLongPress) {
+  const list = document.getElementById(listId);
+  if (!list) return;
+  let timer = null, startX = 0, startY = 0, longPressed = false;
+
+  function start(x, y, id) {
+    longPressed = false;
+    startX = x; startY = y;
+    timer = setTimeout(() => {
+      longPressed = true;
+      timer = null;
+      onLongPress(id);
+    }, 500);
+  }
+  function cancel() { clearTimeout(timer); timer = null; }
+
+  list.addEventListener('touchstart', e => {
+    const item = e.target.closest('.todo-item');
+    if (!item || e.target.closest('.check-btn')) return;
+    start(e.touches[0].clientX, e.touches[0].clientY, item.dataset.id);
+  }, { passive: true });
+  list.addEventListener('touchmove', e => {
+    if (!timer) return;
+    const dx = Math.abs(e.touches[0].clientX - startX);
+    const dy = Math.abs(e.touches[0].clientY - startY);
+    if (dx > 8 || dy > 8) cancel();
+  }, { passive: true });
+  list.addEventListener('touchend',   cancel, { passive: true });
+  list.addEventListener('touchcancel', cancel, { passive: true });
+
+  list.addEventListener('mousedown', e => {
+    const item = e.target.closest('.todo-item');
+    if (!item || e.target.closest('.check-btn')) return;
+    start(e.clientX, e.clientY, item.dataset.id);
+  });
+  list.addEventListener('mouseup',    cancel);
+  list.addEventListener('mouseleave', cancel);
+
+  // 長押し発火後のクリックイベントを抑制
+  list.addEventListener('click', e => {
+    if (longPressed) { e.stopImmediatePropagation(); longPressed = false; }
+  }, true);
 }

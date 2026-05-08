@@ -73,5 +73,14 @@ document.addEventListener('DOMContentLoaded', () => {
       currentPriorities = priorities;
       refresh();
     },
+    onLongPress(id) {
+      const todo = store.getAll().find(t => t.id === id);
+      if (!todo) return;
+      ui.openCommentModal(todo, text => {
+        store.setComment(id, text);
+        const updated = store.getAll().find(t => t.id === id);
+        if (updated) ui.updateItem(updated, store.getPendingCount());
+      });
+    },
   });
 });

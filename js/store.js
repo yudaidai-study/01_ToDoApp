@@ -65,6 +65,7 @@ export const store = {
       deadlineSortDate: computeSortDate(deadline, createdAt),
       createdAt,
       completedAt: null,
+      comment: null,
     };
     todos.push(todo);
     persist(todos);
@@ -123,6 +124,13 @@ export const store = {
 
   getPendingCount() {
     return load().filter(t => t.pendingComplete && !t.completed).length;
+  },
+
+  setComment(id, text) {
+    const todos = load().map(t =>
+      t.id === id ? { ...t, comment: text || null } : t
+    );
+    persist(todos);
   },
 
   clearCompleted() {

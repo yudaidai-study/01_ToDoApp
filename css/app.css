@@ -538,6 +538,16 @@ main {
 }
 .edit-textarea:focus { border-color: var(--blue); }
 
+/* Comment indicator dot */
+.comment-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--blue);
+  align-self: flex-end;
+  flex-shrink: 0;
+}
+
 /* 期限チップ行: 1行に収める・チップを小さく */
 #deadline-group {
   flex-wrap: nowrap;
